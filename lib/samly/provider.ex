@@ -22,7 +22,7 @@ defmodule Samly.Provider do
   require Logger
 
   require Samly.Esaml
-  alias Samly.{State}
+  alias Samly.{ReplayStore, State}
 
   @doc false
   def start_link(gs_opts \\ []) do
@@ -35,6 +35,8 @@ defmodule Samly.Provider do
     store_provider = store_env[:store] || Samly.State.ETS
     store_opts = store_env[:opts] || []
     State.init(store_provider, store_opts)
+    # This process owns the default replay table.
+    ReplayStore.init()
 
     opts = Application.get_env(:samly, Samly.Provider, [])
 

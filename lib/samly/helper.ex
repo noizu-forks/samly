@@ -2,7 +2,8 @@ defmodule Samly.Helper do
   @moduledoc false
 
   require Samly.Esaml
-  alias Samly.{Assertion, Esaml, IdpData}
+  import SweetXml, only: [sigil_x: 2]
+  alias Samly.{Assertion, Esaml, IdpData, ReplayStore}
 
   @spec get_idp(binary) :: nil | IdpData.t()
   def get_idp(idp_id) do
@@ -55,6 +56,10 @@ defmodule Samly.Helper do
     {idp_signin_url, xml_frag}
   end
 
+  @doc false
+  # The ID of an AuthnRequest, which the response must name in InResponseTo.
+  def authn_request_id(xml_frag), do: SweetXml.xpath(xml_frag, ~x"./@ID"s)
+
   def gen_idp_signout_req(sp, idp_metadata, subject_rec, session_index) do
     idp_signout_url = Esaml.esaml_idp_metadata(idp_metadata, :logout_location)
     xml_frag = :esaml_sp.generate_logout_request(idp_signout_url, session_index, subject_rec, sp)
@@ -69,7 +74,8 @@ defmodule Samly.Helper do
 
   def decode_idp_auth_resp(sp, saml_encoding, saml_response) do
     with {:ok, xml_frag} <- decode_saml_payload(saml_encoding, saml_response),
-         {:ok, assertion_rec} <- :esaml_sp.validate_assertion(xml_frag, sp) do
+         {:ok, assertion_rec} <-
+           :esaml_sp.validate_assertion(xml_frag, &ReplayStore.claim_assertion/2, sp) do
       {:ok, Assertion.from_rec(assertion_rec)}
     else
       {:error, reason} -> {:error, reason}

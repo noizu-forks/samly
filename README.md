@@ -352,12 +352,30 @@ config :samly, Samly.Provider,
 
 Take a look at the implementation of `Samly.State.ETS` or `Samly.State.Session` and use those as examples showing how to create your own state store (based on redis, memcached, database etc.).
 
+## Assertion replay protection
+
+Each assertion signs in once. `Samly` claims it in a replay store before it creates a session, and refuses the sign-in when the claim fails for any reason.
+
+The default store, `Samly.ReplayStore.ETS`, is in the memory of one node:
+
++   After a start, assertions issued before the start (plus `:clock_skew`, default 60 seconds) are refused, so **new sign-ins fail for the first minute**.
++   Every sign-in is refused while the node is connected to other Erlang nodes.
++   It cannot see instances that are not connected to each other. **With more than one instance, including the overlap of a rolling deployment, configure a shared store.**
+
+A shared store implements the `Samly.ReplayStore` behaviour with an atomic "insert if absent":
+
+```elixir
+config :samly, Samly.ReplayStore,
+  store: MyApp.SamlReplayStore,
+  opts: []
+```
+
 ## Security Related
 
 +   `Samly` initiated sign-in/sign-out requests send `RelayState` to IdP and expect to get that back. Mismatched or missing `RelayState` in IdP responses to SP initiated requests will fail (with HTTP `403 access_denied`).
 +   Besides the `RelayState`, the request and response `idp_id`s must match. Response is rejected if they don't.
-+   `Samly` makes the original request ID that an auth response corresponds to
-in `Samly.Subject.in_response_to` field. It is the responsibility of the consuming application to use this information along with the validity period in the assertion to check for **replay attacks**. The consuming application should use the `pre_session_create_pipeline` to perform this check. You may need a database or a distributed cache such as memcache in a clustered setup to keep track of these request IDs for their validity period to perform this check. Be aware that `in_response_to` field is **not** set when IDP initialized authorization flow is used.
++   A solicited response must name, in `InResponseTo`, the request ID that `Samly` kept in the session when it sent the request. The value is also available in `Samly.Subject.in_response_to`. It is empty for the IdP initiated flow, which is refused unless `allow_idp_initiated_flow` is on.
++   Each assertion signs in once. See "Assertion replay protection" above, in particular if you run more than one instance.
 +   OOTB SAML requests and responses are signed.
 +   Signature digest method supported: `SHA256`.
     > Some Identity Providers may be using `SHA1` by default.

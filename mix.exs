@@ -29,7 +29,8 @@ defmodule Samly.Mixfile do
   defp deps() do
     [
       {:plug, "~> 1.6"},
-      {:esaml, "~> 4.3"},
+      # Patched fork: the Hex release 4.6.0 has unfixed advisories.
+      {:esaml, github: "noizu-forks/esaml", ref: "b623cfcbb7502bddf02fa1f84cccf4a329e6736d"},
       {:sweet_xml, "~> 0.6"},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false}

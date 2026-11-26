@@ -1,5 +1,10 @@
 # CHANGELOG
 
+### v1.4.0 (noizu-forks) - 2026-11-26
++   CVE-2026-53424: every accepted assertion is claimed in a `Samly.ReplayStore`, so it signs in once. The default store is in the memory of one node and fails closed; see "Assertion replay protection" in the README.
++   CVE-2026-53425: the `AuthnRequest` ID is kept in the session, and a solicited response must name it in `InResponseTo`. A response without `InResponseTo` is still refused unless `allow_idp_initiated_flow` is on.
++   Depends on the patched esaml fork (noizu-forks/esaml).
+
 ### v1.3.0
 +   remove uri double encoding thanks to @DiaanEngelbrecht
 +   fix esaml initialization thanks to @bopm
